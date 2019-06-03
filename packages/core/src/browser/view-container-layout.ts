@@ -307,7 +307,7 @@ export namespace ViewContainerLayout {
                         - ((index + 1) * this.headerHeight) // Headers.
                         - (index * this.handleHeight) // Heights. One less than the headers, the last handler is `display: none`.
                         - this.items
-                            .filter((_, i) => i <= index)
+                            .filter((_, i) => i < index)
                             .filter(item => !item.collapsed)
                             .map(({ minHeight }) => minHeight)
                             .reduce((sum, curr) => sum + curr, 0); // Minimum required heights for the opened parts.
