@@ -78,7 +78,7 @@ export class ViewContainer extends BaseWidget implements ApplicationShell.Tracka
     addWidget(widget: Widget, options?: ViewContainer.Factory.WidgetOptions): Disposable {
         const widgets = this.parts.map(part => part.wrapped);
         if (widgets.indexOf(widget) !== -1) {
-            return Disposable.NULL;
+            // return Disposable.NULL;
         }
         const newPart = new ViewContainerPart(widget, this.id, { collapsed: false, minHeight: 100 }); // TODO: propagate the `options` to the parts.
         this.registerPart(newPart);

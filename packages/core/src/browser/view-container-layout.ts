@@ -43,18 +43,26 @@ export class ViewContainerLayout extends SplitLayout {
                 event.preventDefault();
                 event.stopPropagation();
 
-                let nextExpandedIndex = this.widgets.findIndex((widget, i) => i > index && !this.isCollapsed(widget));
-                if (nextExpandedIndex === -1) {
+                let indexToAdjust = -1;
+                for (let i = index; i >= 0; i--) {
+                    if (!this.isCollapsed(this.items[i].widget)) {
+                        indexToAdjust = i;
+                        break;
+                    }
+                }
+                if (indexToAdjust === -1) {
+                    indexToAdjust = this.widgets.findIndex((widget, i) => i > index && !this.isCollapsed(widget));
+                }
+                if (indexToAdjust === -1) {
                     return;
                 }
-                nextExpandedIndex = nextExpandedIndex - 1;
 
                 document.addEventListener('mouseup', this.mouseUpListener.bind(this), true);
                 document.addEventListener('mousemove', this.mouseMoveListener.bind(this), true);
                 document.addEventListener('keydown', this.parent, true);
                 document.addEventListener('contextmenu', this.parent, true);
                 let delta;
-                const handle = this.handles[nextExpandedIndex];
+                const handle = this.handles[indexToAdjust];
                 const rect = handle.getBoundingClientRect();
                 if (this.orientation === 'horizontal') {
                     delta = event.clientX - rect.left;
@@ -64,7 +72,7 @@ export class ViewContainerLayout extends SplitLayout {
                 const style = window.getComputedStyle(handle);
                 const override = Drag.overrideCursor(style.cursor || 'auto');
                 // tslint:disable-next-line:no-any
-                (this.parent as any)._pressData = { index: nextExpandedIndex, delta: delta, override: override };
+                (this.parent as any)._pressData = { index: indexToAdjust, delta: delta, override: override };
             }
         }
     }
@@ -84,8 +92,14 @@ export class ViewContainerLayout extends SplitLayout {
             } else {
                 pos = event.clientY - rect.top - pressData.delta;
             }
-            if (this.isCollapsed(this.widgets[pressData.index]) && pos > this.handlePosition(pressData.index)) {
-                this.moveHandle(pressData.index - 1, pos - 22);
+
+            if (!!this.items[pressData.index + 1] && this.isCollapsed(this.items[pressData.index + 1].widget)) {
+                const nextExpandedIndex = this.widgets.findIndex((widget, i) => i > pressData.index && !this.isCollapsed(widget));
+                if (nextExpandedIndex !== -1) {
+                    const toAdjustIndex = Math.max(nextExpandedIndex - 1, 0);
+                    console.log(this.handlePosition(pressData.index), pos);
+                    this.moveHandle(toAdjustIndex, pos - ((pressData.index - toAdjustIndex) * 22));
+                }
             } else {
                 this.moveHandle(pressData.index, pos);
             }
