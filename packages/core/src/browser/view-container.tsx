@@ -395,7 +395,7 @@ export class ViewContainerPart extends BaseWidget {
                     dataTransfer.effectAllowed = 'move';
                     dataTransfer.setData('view-container-dnd', this.id);
                     const dragImage = document.createElement('div');
-                    dragImage.classList.add('theia-drag-image');
+                    dragImage.classList.add('theia-view-container-drag-image');
                     dragImage.innerText = this.wrapped.title.label;
                     document.body.appendChild(dragImage);
                     dataTransfer.setDragImage(dragImage, -10, -10);

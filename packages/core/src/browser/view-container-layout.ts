@@ -16,7 +16,8 @@
 
 import { IIterator, iter, toArray } from '@phosphor/algorithm';
 import { Message } from '@phosphor/messaging';
-import { SplitLayout, Widget, LayoutItem } from './widgets';
+import { SplitLayout, Widget, LayoutItem, addEventListener } from './widgets';
+import { DisposableCollection } from '../common/disposable';
 import { ViewContainerPart } from './view-container';
 import * as PQueue from 'p-queue';
 
@@ -25,6 +26,32 @@ export class ViewContainerLayout extends SplitLayout {
     protected readonly defaultHeights = new Map<Widget, number>();
     protected readonly beforeCollapseHeights = new Map<Widget, number>();
     protected readonly animationQueue = new PQueue({ autoStart: true, concurrency: 1 });
+    protected readonly toDisposeOnDetach = new DisposableCollection();
+    protected readonly mouseDownListener = (event: MouseEvent) => {
+        // Do nothing if the left mouse button is not pressed.
+        if (event.button !== 0) {
+            return;
+        }
+
+        const { target } = event;
+        if (target instanceof Node) {
+
+            // Find the handle which contains the mouse target, if any.
+            const index = this.handles.findIndex(handle => handle.contains(target));
+
+            // Bail early if the mouse press was not on a handle.
+            if (index === -1) {
+                return;
+            }
+
+            if (this.isCollapsed(this.widgets[index])) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
+        }
+    }
 
     constructor(protected options: ViewContainerLayout.Options) {
         super(Object.assign(options, { fitPolicy: 'set-no-constraint' }));
@@ -95,8 +122,23 @@ export class ViewContainerLayout extends SplitLayout {
         });
     }
 
+    protected onAfterAttach(msg: Message): void {
+        if (this.parent) {
+            this.toDisposeOnDetach.push(addEventListener(this.parent.node, 'mousedown', this.mouseDownListener.bind(this), true));
+        }
+        super.onAfterAttach(msg);
+    }
+
+    protected onAfterDetach(msg: Message): void {
+        if (!this.toDisposeOnDetach.disposed) {
+            this.toDisposeOnDetach.dispose();
+        }
+        super.onAfterDetach(msg);
+    }
+
     removeWidget(widget: Widget): void {
         this.defaultHeights.delete(widget);
+        this.beforeCollapseHeights.delete(widget);
         super.removeWidget(widget);
     }
 
@@ -171,9 +213,15 @@ export class ViewContainerLayout extends SplitLayout {
         }
 
         const { widget } = this.items[index];
+        const collapsed = this.isCollapsed(widget);
+        if (collapsed) {
+            this.handles[index].classList.add('collapsed');
+        } else {
+            this.handles[index].classList.remove('collapsed');
+        }
         // Do not store the height of the "stretched item". Otherwise, we mess up the "hint height".
         // Store the height only if there are other expanded items.
-        if (this.isCollapsed(widget) /*&& this.items.some(item => !this.isCollapsed(item.widget))*/) {
+        if (collapsed && this.items.some(item => !this.isCollapsed(item.widget))) {
             this.beforeCollapseHeights.set(widget, widget.node.offsetHeight);
         }
 
@@ -202,6 +250,9 @@ export class ViewContainerLayout extends SplitLayout {
 
 }
 
+/**
+ * Calculates the desired pixel position of the handles when expanding/collapsing the items in the layout.
+ */
 export namespace ViewContainerLayout {
 
     export interface Options extends SplitLayout.IOptions {
