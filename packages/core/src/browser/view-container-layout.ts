@@ -33,7 +33,6 @@ export class ViewContainerLayout extends SplitLayout {
             if (event.button !== 0) {
                 return;
             }
-
             const { target } = event;
             if (target instanceof Node) {
                 const index = this.handles.findIndex(h => h.contains(target));
@@ -43,26 +42,12 @@ export class ViewContainerLayout extends SplitLayout {
                 event.preventDefault();
                 event.stopPropagation();
 
-                let indexToAdjust = -1;
-                for (let i = index; i >= 0; i--) {
-                    if (!this.isCollapsed(this.items[i].widget)) {
-                        indexToAdjust = i;
-                        break;
-                    }
-                }
-                if (indexToAdjust === -1) {
-                    indexToAdjust = this.widgets.findIndex((widget, i) => i > index && !this.isCollapsed(widget));
-                }
-                if (indexToAdjust === -1) {
-                    return;
-                }
-
                 document.addEventListener('mouseup', this.mouseUpListener.bind(this), true);
                 document.addEventListener('mousemove', this.mouseMoveListener.bind(this), true);
                 document.addEventListener('keydown', this.parent, true);
                 document.addEventListener('contextmenu', this.parent, true);
                 let delta;
-                const handle = this.handles[indexToAdjust];
+                const handle = this.handles[index];
                 const rect = handle.getBoundingClientRect();
                 if (this.orientation === 'horizontal') {
                     delta = event.clientX - rect.left;
@@ -72,7 +57,7 @@ export class ViewContainerLayout extends SplitLayout {
                 const style = window.getComputedStyle(handle);
                 const override = Drag.overrideCursor(style.cursor || 'auto');
                 // tslint:disable-next-line:no-any
-                (this.parent as any)._pressData = { index: indexToAdjust, delta: delta, override: override };
+                (this.parent as any)._pressData = { index, delta, override };
             }
         }
     }
@@ -83,26 +68,66 @@ export class ViewContainerLayout extends SplitLayout {
             if (!pressData) {
                 return;
             }
+            const index = pressData.index as number;
             event.preventDefault();
             event.stopPropagation();
-            let pos;
+            let newPosition;
             const rect = this.parent.node.getBoundingClientRect();
             if (this.orientation === 'horizontal') {
-                pos = event.clientX - rect.left - pressData.delta;
+                newPosition = event.clientX - rect.left - pressData.delta;
             } else {
-                pos = event.clientY - rect.top - pressData.delta;
+                newPosition = event.clientY - rect.top - pressData.delta;
             }
 
-            if (!!this.items[pressData.index + 1] && this.isCollapsed(this.items[pressData.index + 1].widget)) {
-                const nextExpandedIndex = this.widgets.findIndex((widget, i) => i > pressData.index && !this.isCollapsed(widget));
-                if (nextExpandedIndex !== -1) {
-                    const toAdjustIndex = Math.max(nextExpandedIndex - 1, 0);
-                    console.log(this.handlePosition(pressData.index), pos);
-                    this.moveHandle(toAdjustIndex, pos - ((pressData.index - toAdjustIndex) * 22));
-                }
-            } else {
-                this.moveHandle(pressData.index, pos);
+            if (this.orientation === 'horizontal') {
+                this.moveHandle(index, newPosition);
+                return; // Expand/Collapse is not yet supported with horizontal orientation.
             }
+
+            // Pushing down.
+            let indexToAdjust = index;
+            if (event.movementY >= 0) {
+                if (this.isCollapsed(this.items[index].widget)) {
+                    for (let i = index - 1; i >= 0; i--) {
+                        if (!this.isCollapsed(this.items[i].widget)) {
+                            indexToAdjust = i;
+                            break;
+                        }
+                    }
+                    if (index === indexToAdjust) {
+                        return; // Cannot push down.
+                    }
+                }
+                this.moveHandle(indexToAdjust, newPosition - ((index - indexToAdjust) * 22));
+            } else {
+                if (this.isCollapsed(this.items[index].widget)) {
+                    indexToAdjust = this.items.findIndex((item, i) => i > index && !this.isCollapsed(item.widget));
+                    if (indexToAdjust === -1) {
+                        return; // Cannot pull up.
+                    }
+                }
+                this.moveHandle(indexToAdjust, newPosition + ((indexToAdjust - index) * 22));
+            }
+
+            // console.log(event.movementY);
+            // console.log(event.clientY - rect.top, this.handlePosition(index));
+            // // console.log('index', index, 'pos', pos, 'index handle pos', this.handlePosition(index), this.handles[index].offsetTop, 'pre expanded', prevExpandedIndex);
+            // if (event.clientY - rect.top > this.handlePosition(index)) {
+            //     console.log('pushing down');
+            // } else {
+            //     console.log('UP');
+            // }
+
+            // if (!!this.items[pressData.index + 1] && this.isCollapsed(this.items[pressData.index + 1].widget)) {
+            //     const nextExpandedIndex = this.widgets.findIndex((widget, i) => i > pressData.index && !this.isCollapsed(widget));
+            //     if (nextExpandedIndex !== -1) {
+            //         const toAdjustIndex = Math.max(nextExpandedIndex - 1, 0);
+            //         console.log(this.handlePosition(pressData.index), pos);
+            //         this.moveHandle(toAdjustIndex, pos - ((pressData.index - toAdjustIndex) * 22));
+            //     }
+            // } else {
+            // }
+            // this.moveHandle(pressData.index, newPosition);
         }
     }
     protected mouseUpListener = () => {
@@ -123,7 +148,7 @@ export class ViewContainerLayout extends SplitLayout {
     }
 
     constructor(protected options: ViewContainerLayout.Options) {
-        super(Object.assign(options, { fitPolicy: 'set-no-constraint' }));
+        super(options);
     }
 
     iter(): IIterator<Widget> {

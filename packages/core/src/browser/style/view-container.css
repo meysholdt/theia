@@ -35,10 +35,6 @@
     min-width: 2px
 }
 
-.theia-view-container .p-SplitPanel > .p-SplitPanel-handle.collapsed {
-    cursor: auto;
-}
-
 .theia-view-container .p-SplitPanel-handle {
     background-color: var(--theia-menu-color0);
 }
