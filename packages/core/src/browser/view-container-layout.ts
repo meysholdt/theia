@@ -14,12 +14,13 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { IIterator, iter, toArray } from '@phosphor/algorithm';
+import * as PQueue from 'p-queue';
+import { Drag } from '@phosphor/dragdrop';
 import { Message } from '@phosphor/messaging';
-import { SplitLayout, Widget, LayoutItem, addEventListener } from './widgets';
+import { IIterator, iter, toArray } from '@phosphor/algorithm';
 import { DisposableCollection } from '../common/disposable';
 import { ViewContainerPart } from './view-container';
-import * as PQueue from 'p-queue';
+import { SplitLayout, Widget, LayoutItem, addEventListener, SplitPanel } from './widgets';
 
 export class ViewContainerLayout extends SplitLayout {
 
@@ -28,28 +29,82 @@ export class ViewContainerLayout extends SplitLayout {
     protected readonly animationQueue = new PQueue({ autoStart: true, concurrency: 1 });
     protected readonly toDisposeOnDetach = new DisposableCollection();
     protected readonly mouseDownListener = (event: MouseEvent) => {
-        // Do nothing if the left mouse button is not pressed.
-        if (event.button !== 0) {
-            return;
-        }
-
-        const { target } = event;
-        if (target instanceof Node) {
-
-            // Find the handle which contains the mouse target, if any.
-            const index = this.handles.findIndex(handle => handle.contains(target));
-
-            // Bail early if the mouse press was not on a handle.
-            if (index === -1) {
+        if (this.parent instanceof SplitPanel) {
+            if (event.button !== 0) {
                 return;
             }
 
-            if (this.isCollapsed(this.widgets[index])) {
+            const { target } = event;
+            if (target instanceof Node) {
+                const index = this.handles.findIndex(h => h.contains(target));
+                if (index === -1) {
+                    return;
+                }
                 event.preventDefault();
                 event.stopPropagation();
+
+                let nextExpandedIndex = this.widgets.findIndex((widget, i) => i > index && !this.isCollapsed(widget));
+                if (nextExpandedIndex === -1) {
+                    return;
+                }
+                nextExpandedIndex = nextExpandedIndex - 1;
+
+                document.addEventListener('mouseup', this.mouseUpListener.bind(this), true);
+                document.addEventListener('mousemove', this.mouseMoveListener.bind(this), true);
+                document.addEventListener('keydown', this.parent, true);
+                document.addEventListener('contextmenu', this.parent, true);
+                let delta;
+                const handle = this.handles[nextExpandedIndex];
+                const rect = handle.getBoundingClientRect();
+                if (this.orientation === 'horizontal') {
+                    delta = event.clientX - rect.left;
+                } else {
+                    delta = event.clientY - rect.top;
+                }
+                const style = window.getComputedStyle(handle);
+                const override = Drag.overrideCursor(style.cursor || 'auto');
+                // tslint:disable-next-line:no-any
+                (this.parent as any)._pressData = { index: nextExpandedIndex, delta: delta, override: override };
+            }
+        }
+    }
+    protected mouseMoveListener = (event: MouseEvent) => {
+        if (this.parent instanceof SplitPanel) {
+            // tslint:disable-next-line:no-any
+            const pressData = (this.parent as any)._pressData;
+            if (!pressData) {
                 return;
             }
-
+            event.preventDefault();
+            event.stopPropagation();
+            let pos;
+            const rect = this.parent.node.getBoundingClientRect();
+            if (this.orientation === 'horizontal') {
+                pos = event.clientX - rect.left - pressData.delta;
+            } else {
+                pos = event.clientY - rect.top - pressData.delta;
+            }
+            if (this.isCollapsed(this.widgets[pressData.index]) && pos > this.handlePosition(pressData.index)) {
+                this.moveHandle(pressData.index - 1, pos - 22);
+            } else {
+                this.moveHandle(pressData.index, pos);
+            }
+        }
+    }
+    protected mouseUpListener = () => {
+        if (this.parent instanceof SplitPanel) {
+            // tslint:disable-next-line:no-any
+            const pressData = (this.parent as any)._pressData;
+            if (!pressData) {
+                return;
+            }
+            pressData.override.dispose();
+            // tslint:disable-next-line
+            (this.parent as any)._pressData = null;
+            document.removeEventListener('mouseup', this.mouseUpListener.bind(this), true);
+            document.removeEventListener('mousemove', this.mouseMoveListener.bind(this), true);
+            document.removeEventListener('keydown', this.parent, true);
+            document.removeEventListener('contextmenu', this.parent, true);
         }
     }
 
