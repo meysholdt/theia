@@ -86,7 +86,7 @@ export class ViewContainerLayout extends SplitLayout {
 
             // Pushing down.
             let indexToAdjust = index;
-            if (event.movementY >= 0) {
+            if (event.movementY > 0) {
                 if (this.isCollapsed(this.items[index].widget)) {
                     for (let i = index - 1; i >= 0; i--) {
                         if (!this.isCollapsed(this.items[i].widget)) {
@@ -99,35 +99,19 @@ export class ViewContainerLayout extends SplitLayout {
                     }
                 }
                 this.moveHandle(indexToAdjust, newPosition - ((index - indexToAdjust) * 22));
-            } else {
-                if (this.isCollapsed(this.items[index].widget)) {
-                    indexToAdjust = this.items.findIndex((item, i) => i > index && !this.isCollapsed(item.widget));
+            } else if (event.movementY < 0) {
+                // When pulling down we have to check the next item, and not the current one with `index`.
+                // Note: there is always a next item, because we should never adjust the last handle, it is hidden.
+                if (this.isCollapsed(this.items[index + 1].widget)) {
+                    indexToAdjust = this.items.findIndex((item, i) => i > index + 1 && !this.isCollapsed(item.widget));
                     if (indexToAdjust === -1) {
                         return; // Cannot pull up.
                     }
+                    this.moveHandle(indexToAdjust - 1, newPosition + ((indexToAdjust - 1 - index) * 22));
+                } else {
+                    this.moveHandle(indexToAdjust, newPosition);
                 }
-                this.moveHandle(indexToAdjust, newPosition + ((indexToAdjust - index) * 22));
             }
-
-            // console.log(event.movementY);
-            // console.log(event.clientY - rect.top, this.handlePosition(index));
-            // // console.log('index', index, 'pos', pos, 'index handle pos', this.handlePosition(index), this.handles[index].offsetTop, 'pre expanded', prevExpandedIndex);
-            // if (event.clientY - rect.top > this.handlePosition(index)) {
-            //     console.log('pushing down');
-            // } else {
-            //     console.log('UP');
-            // }
-
-            // if (!!this.items[pressData.index + 1] && this.isCollapsed(this.items[pressData.index + 1].widget)) {
-            //     const nextExpandedIndex = this.widgets.findIndex((widget, i) => i > pressData.index && !this.isCollapsed(widget));
-            //     if (nextExpandedIndex !== -1) {
-            //         const toAdjustIndex = Math.max(nextExpandedIndex - 1, 0);
-            //         console.log(this.handlePosition(pressData.index), pos);
-            //         this.moveHandle(toAdjustIndex, pos - ((pressData.index - toAdjustIndex) * 22));
-            //     }
-            // } else {
-            // }
-            // this.moveHandle(pressData.index, newPosition);
         }
     }
     protected mouseUpListener = () => {
