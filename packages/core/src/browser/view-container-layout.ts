@@ -84,6 +84,9 @@ export class ViewContainerLayout extends SplitLayout {
                 return; // Expand/Collapse is not yet supported with horizontal orientation.
             }
 
+            const hasNextOpen = this.items.filter((_, i) => i > index).map(({ widget }) => widget).some(widget => !this.isCollapsed(widget));
+            const hasPrevOpen = this.items.filter((_, i) => i < index).map(({ widget }) => widget).some(widget => !this.isCollapsed(widget));
+
             // Pushing down.
             let indexToAdjust = index;
             if (event.movementY > 0) {
@@ -94,7 +97,7 @@ export class ViewContainerLayout extends SplitLayout {
                             break;
                         }
                     }
-                    if (index === indexToAdjust) {
+                    if (index === indexToAdjust || !hasNextOpen) {
                         return; // Cannot push down.
                     }
                 }
@@ -104,7 +107,7 @@ export class ViewContainerLayout extends SplitLayout {
                 // Note: there is always a next item, because we should never adjust the last handle, it is hidden.
                 if (this.isCollapsed(this.items[index + 1].widget)) {
                     indexToAdjust = this.items.findIndex((item, i) => i > index + 1 && !this.isCollapsed(item.widget));
-                    if (indexToAdjust === -1) {
+                    if (indexToAdjust === -1 || !hasPrevOpen) {
                         return; // Cannot pull up.
                     }
                     this.moveHandle(indexToAdjust - 1, newPosition + ((indexToAdjust - 1 - index) * 22));
