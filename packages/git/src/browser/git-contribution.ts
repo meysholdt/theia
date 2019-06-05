@@ -70,6 +70,7 @@ import {
     ScmGroupCommandRegistry
 } from '@theia/scm/lib/browser/scm-group-command-registry';
 import { GitDecorator } from './git-decorator';
+import { ScmContribution } from '@theia/scm/lib/browser/scm-contribution';
 
 export const EDITOR_CONTEXT_MENU_GIT = [...EDITOR_CONTEXT_MENU, '3_git'];
 
@@ -253,7 +254,7 @@ export class GitContribution implements
     @inject(Git) protected readonly git: Git;
     @inject(GitErrorHandler) protected readonly gitErrorHandler: GitErrorHandler;
     @inject(LabelProvider) protected readonly labelProvider: LabelProvider;
-    @inject(ScmWidget) protected readonly scmWidget: ScmWidget;
+    @inject(ScmContribution) protected readonly scmContribution: ScmContribution;
     @inject(GitCommands) protected readonly gitCommands: GitCommands;
 
     onStart(): void {
@@ -558,7 +559,8 @@ export class GitContribution implements
                     } else {
                         commitTextArea.value = `${content}${signOff}`;
                     }
-                    this.scmWidget.resize(commitTextArea);
+                    const scmWidget = await this.scmContribution.widget;
+                    scmWidget.resize(commitTextArea);
                     commitTextArea.focus();
                 }
             }
@@ -760,7 +762,7 @@ export class GitContribution implements
 
     registerScmTitleCommands(registry: ScmTitleCommandRegistry): void {
         registry.registerItem({ command: GIT_COMMANDS.REFRESH.id, group: 'navigation' });
-        registry.registerItem({ command: GIT_COMMANDS.COMMIT_ADD_SIGN_OFF.id, group: 'navigation'});
+        registry.registerItem({ command: GIT_COMMANDS.COMMIT_ADD_SIGN_OFF.id, group: 'navigation' });
     }
 
     registerScmResourceCommands(registry: ScmResourceCommandRegistry): void {
