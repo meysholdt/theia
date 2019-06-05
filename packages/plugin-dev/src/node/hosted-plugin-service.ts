@@ -39,7 +39,11 @@ export class HostedPluginServerImpl implements HostedPluginServer {
     private readonly hostedPlugin: HostedPluginSupport;
 
     dispose(): void {
-        this.hostedInstanceManager.terminate();
+        try {
+            this.hostedInstanceManager.terminate();
+        } catch (e) {
+            console.log(e.message);
+        }
     }
     setClient(client: HostedPluginClient): void {
 
@@ -66,7 +70,11 @@ export class HostedPluginServerImpl implements HostedPluginServer {
     }
 
     terminateHostedPluginInstance(): Promise<void> {
-        this.hostedInstanceManager.terminate();
+        try {
+            this.hostedInstanceManager.terminate();
+        } catch (e) {
+            console.log(e.message);
+        }
         return Promise.resolve();
     }
 
