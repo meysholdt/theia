@@ -107,3 +107,4 @@ Read below how to engage with Theia community:
 - [一 (Secondary) GNU General Public License, version 2 with the GNU Classpath Exception](LICENSE)
 
 Test
+Test2
