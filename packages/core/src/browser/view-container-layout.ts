@@ -194,7 +194,7 @@ export class ViewContainerLayout extends SplitLayout {
             for (let i = 0; i < this.items.length; i++) {
                 const { widget } = this.items[i];
                 const { offsetHeight } = widget.node;
-                if (!this.defaultHeights.has(widget)) {
+                if (!this.defaultHeights.has(widget) && typeof offsetHeight === 'number' && offsetHeight > 0) {
                     this.defaultHeights.set(widget, offsetHeight);
                     // TODO: Adjust when container is resized!
                     // offsetHeight * (oldSize / newSize)
@@ -280,6 +280,8 @@ export class ViewContainerLayout extends SplitLayout {
                             throw new Error(`currentPosition > end; currentPosition: ${currentPosition}, end: ${end} start: ${start}.`);
                         }
                     }
+                    console.log('done'); // TODO: remove
+                    this.createAdjuster();
                     animationResolve();
                 }
             };
@@ -353,7 +355,7 @@ export namespace ViewContainerLayout {
                 collapsed: boolean
             }>>
         ) {
-
+            console.log(JSON.stringify(this)); // TODO: remove
         }
 
         adjustHandles(index: number): ReadonlyArray<Readonly<{ handleIndex: number, position: number }>> {
@@ -409,7 +411,7 @@ export namespace ViewContainerLayout {
                     if (canUseAboveHeight) {
                         animations.push({
                             handleIndex: index - 1,
-                            position: this.items[index].position - Math.min(heightHint, availableAboveHeight)
+                            position: this.items[index].position - Math.min(heightHint, availableAboveHeight) - 2
                         });
                     } else {
                         animations.push({

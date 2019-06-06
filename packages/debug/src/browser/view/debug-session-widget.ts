@@ -75,18 +75,18 @@ export class DebugSessionWidget extends BaseWidget implements ApplicationShell.T
                     weight: 30
                 }
             },
-            {
-                widget: DebugStackFramesWidget,
-                options: {
-                    weight: 20
-                }
-            },
-            {
-                widget: DebugStackFramesWidget,
-                options: {
-                    weight: 20
-                }
-            },
+            // {
+            //     widget: DebugStackFramesWidget,
+            //     options: {
+            //         weight: 20
+            //     }
+            // },
+            // {
+            //     widget: DebugStackFramesWidget,
+            //     options: {
+            //         weight: 20
+            //     }
+            // },
             {
                 widget: DebugStackFramesWidget,
                 options: {
