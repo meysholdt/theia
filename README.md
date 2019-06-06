@@ -106,3 +106,4 @@ Read below how to engage with Theia community:
 - [Eclipse Public License 2.0](LICENSE)
 - [一 (Secondary) GNU General Public License, version 2 with the GNU Classpath Exception](LICENSE)
 
+Test
